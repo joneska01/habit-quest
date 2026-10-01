@@ -16,6 +16,8 @@ A phone-first habit tracker with a bright retro 8-bit platformer feel. Habits ar
 | 2. Playable | Habit library, create quest, Today logging, past-day logging | ✅ Done |
 | 3. Game layer | XP, levels, streaks, HUD, animations | ✅ Done |
 | 4. Endgame | Quest calendar, results screen, year stats, undo, autofill login | ✅ Done |
+| + Home screen icon | Pixel-star icon, web manifest, standalone iPhone launch | ✅ Done |
+| Nudges | In-app banner, then iPhone push | Scoped: [`nudges-scope.md`](docs/superpowers/specs/2026-10-01-nudges-scope.md) |
 
 ## Stack
 
@@ -68,6 +70,10 @@ src/
   app/
     layout.tsx              fonts, metadata, page column, <Sky />
     sky.tsx                 decorative pixel clouds
+    pixel-icon.tsx          shared pixel-star icon renderer (next/og)
+    icon.tsx                /icon/32, /icon/192, /icon/512
+    apple-icon.tsx          /apple-icon (180px, iPhone home screen)
+    manifest.ts             /manifest.webmanifest (standalone, sky theme)
     globals.css             @theme palette, sky/grass background, pixel-* classes
     login/                  page, client form (useActionState), login server action
     (game)/                 everything behind login (route group = no URL segment)
@@ -183,6 +189,13 @@ Component classes in `globals.css`:
 
 Fonts: `font-pixel` (Press Start 2P) for headings, numbers and the HUD; `font-body` (Nunito) for everything else. The look is an original 8-bit style; don't use Nintendo assets or names.
 
+## Home screen app
+
+- **iPhone:** open the site in Safari, then Share → **Add to Home Screen**. It launches full-screen (`appleWebApp.capable` + manifest `display: standalone`) with the pixel-star icon.
+- **The home-screen app keeps its own cookies**, separate from Safari, so log in once there (autofill auto-login helps).
+- The icons are drawn in code (`pixel-icon.tsx`), so edit the `STAR` grid to change the art. iOS caches home-screen icons, so remove and re-add the app to see a new one.
+- `proxy.ts` excludes `icon`, `apple-icon` and `manifest.webmanifest`, because phones fetch them without a session.
+
 ## Testing
 
 ```bash
@@ -202,4 +215,5 @@ Pushing or merging to `main` triggers an automatic production deploy on Vercel. 
 - `npm audit` reports moderate advisories inside `drizzle-kit` (esbuild). It's a dev-only tool that is never deployed. Don't run `audit fix --force` (it downgrades drizzle-kit).
 - `@types/node` is pinned to v24 to satisfy Vitest 5's peer range and match Vercel's Node 24 runtime.
 - `AGENTS.md` is rewritten by `next dev`. Commit it as-is.
+- A route whose path starts with `icon`, `apple-icon` or `manifest.webmanifest` bypasses the login proxy (see the matcher). Don't name real pages that way.
 - If you move or rename folders under `src/app` while `npm run dev` is running, restart it. Turbopack can stop watching the new folder and serve pages without their Tailwind classes, or return 500s.

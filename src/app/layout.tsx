@@ -10,6 +10,8 @@ const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito" });
 export const metadata: Metadata = {
   title: "Habit Quest",
   description: "Level up your daily habits.",
+  // Full-screen launch from the iPhone home screen (no Safari bars).
+  appleWebApp: { capable: true, title: "Habit Quest", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
