@@ -11,7 +11,15 @@ export function LoginForm() {
     <form action={formAction} className="flex flex-col gap-4">
       <label className="flex flex-col gap-1 font-bold">
         Email
-        <input name="email" type="email" autoComplete="email" required className="pixel-input" />
+        <input
+          name="email"
+          type="email"
+          autoComplete="email"
+          required
+          defaultValue={state.email}
+          key={state.email}
+          className="pixel-input"
+        />
       </label>
       <label className="flex flex-col gap-1 font-bold">
         Password
