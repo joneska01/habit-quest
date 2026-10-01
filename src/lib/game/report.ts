@@ -1,5 +1,5 @@
 // Quest results (spec §4/§6): completion %, grade, per-habit totals, best streaks.
-import { addDays } from "../dates";
+import { eachDay } from "../dates";
 import { questStatus, type QuestStatus } from "../quests";
 import { buildTargetCalendar, scoreDays, totalXp, type LogEntry, type QuestHabitWindow } from "./score";
 
@@ -42,12 +42,6 @@ export type QuestReport = {
   habits: HabitReport[];
 };
 
-function datesBetween(start: string, end: string): string[] {
-  const dates: string[] = [];
-  for (let d = start; d <= end; d = addDays(d, 1)) dates.push(d);
-  return dates;
-}
-
 /**
  * Completion uses this quest's own targets; XP is the global per-day XP
  * (all quests) earned on the quest's dates.
@@ -60,7 +54,7 @@ export function questReport(
 ): QuestReport {
   const status = questStatus(quest, today);
   const lastDay = quest.endDate < today ? quest.endDate : today;
-  const elapsed = status === "upcoming" ? [] : datesBetween(quest.startDate, lastDay);
+  const elapsed = status === "upcoming" ? [] : eachDay(quest.startDate, lastDay);
   const inWindow = (date: string) => date >= quest.startDate && date <= lastDay;
   const amounts = new Map(logs.map((l) => [`${l.habitId}|${l.date}`, l.amount]));
   const amountOn = (habitId: number, date: string) => amounts.get(`${habitId}|${date}`) ?? 0;
@@ -87,7 +81,7 @@ export function questReport(
   return {
     status,
     daysElapsed: elapsed.length,
-    daysTotal: datesBetween(quest.startDate, quest.endDate).length,
+    daysTotal: eachDay(quest.startDate, quest.endDate).length,
     completionPct,
     grade: cells === 0 ? null : grade(completionPct),
     xpEarned: totalXp(scored.filter((d) => inWindow(d.date))),

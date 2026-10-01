@@ -19,7 +19,11 @@ function QuestCard({ quest }: { quest: QuestSummary }) {
     <article className="pixel-card flex flex-col gap-3 p-4">
       <div className="flex items-start gap-2">
         <div className="flex-1">
-          <h3 className="font-pixel text-xs leading-relaxed">{quest.name.toUpperCase()}</h3>
+          <h3 className="font-pixel text-xs leading-relaxed">
+            <Link href={`/quests/${quest.id}`} className="underline decoration-2 underline-offset-4">
+              {quest.name.toUpperCase()} ▶
+            </Link>
+          </h3>
           <p className="font-bold">
             {formatRange(quest.startDate, quest.endDate)} · {quest.period === "week" ? "Weekly" : "Monthly"}
           </p>

@@ -37,6 +37,13 @@ export function addDays(date: string, days: number): string {
   return fromUtc(d);
 }
 
+/** Inclusive list of dates from start to end (empty if end < start). */
+export function eachDay(start: string, end: string): string[] {
+  const dates: string[] = [];
+  for (let d = start; d <= end; d = addDays(d, 1)) dates.push(d);
+  return dates;
+}
+
 export function endOfMonth(date: string): string {
   const d = toUtc(date);
   // Day 0 of next month = last day of this month.

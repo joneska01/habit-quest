@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { addDays, endOfMonth, formatDayLabel, formatRange, isIsoDate, todayInChicago } from "./dates";
+import { addDays, eachDay, endOfMonth, formatDayLabel, formatRange, isIsoDate, todayInChicago } from "./dates";
 
 describe("todayInChicago", () => {
   it("is still the previous day late in the evening Central (CDT, UTC-5)", () => {
@@ -44,5 +44,12 @@ describe("formatting", () => {
   });
   it("formats a range", () => {
     expect(formatRange("2026-10-01", "2026-10-31")).toBe("Oct 1 – Oct 31");
+  });
+});
+
+describe("eachDay", () => {
+  it("lists dates inclusively", () => {
+    expect(eachDay("2026-10-30", "2026-11-02")).toEqual(["2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02"]);
+    expect(eachDay("2026-10-02", "2026-10-01")).toEqual([]);
   });
 });
