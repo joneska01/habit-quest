@@ -54,3 +54,13 @@ export const createQuestSchema = z.object({
     .refine((hs) => new Set(hs.map((h) => h.habitId)).size === hs.length, "Each habit can only be added once"),
 });
 export type CreateQuestInput = z.infer<typeof createQuestSchema>;
+
+/** A browser PushSubscription.toJSON(), saved so the server can push to it. */
+export const pushSubscriptionSchema = z.object({
+  endpoint: z.url({ protocol: /^https$/ }).max(1000),
+  keys: z.object({
+    p256dh: z.string().min(1).max(200),
+    auth: z.string().min(1).max(100),
+  }),
+});
+export type PushSubscriptionInput = z.infer<typeof pushSubscriptionSchema>;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { createHabitSchema, createQuestSchema, logProgressSchema } from "./validation";
+import { createHabitSchema, createQuestSchema, logProgressSchema, pushSubscriptionSchema } from "./validation";
 
 describe("logProgressSchema", () => {
   const base = { habitId: 1, date: "2026-10-01" };
@@ -57,5 +57,19 @@ describe("createQuestSchema", () => {
         ],
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("pushSubscriptionSchema", () => {
+  const valid = {
+    endpoint: "https://web.push.apple.com/abc123",
+    keys: { p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM", auth: "tBHItJI5svbpez7KI4CCXg" },
+  };
+  it("accepts a browser subscription", () => {
+    expect(pushSubscriptionSchema.safeParse(valid).success).toBe(true);
+  });
+  it("rejects non-https endpoints and missing keys", () => {
+    expect(pushSubscriptionSchema.safeParse({ ...valid, endpoint: "http://evil.example/x" }).success).toBe(false);
+    expect(pushSubscriptionSchema.safeParse({ endpoint: valid.endpoint, keys: { auth: "x" } }).success).toBe(false);
   });
 });
