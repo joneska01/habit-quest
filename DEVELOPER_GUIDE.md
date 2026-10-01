@@ -13,8 +13,8 @@ A phone-first habit tracker with a bright retro 8-bit platformer feel. Habits ar
 | Phase | Scope | Status |
 |---|---|---|
 | 1. Foundation | Schema, auth, seed, base theme, Developer Guide | ✅ Done |
-| 2. Playable | Habit library, create quest, Today logging | Next |
-| 3. Game layer | XP, levels, streaks, HUD, animations | — |
+| 2. Playable | Habit library, create quest, Today logging, past-day logging | ✅ Done |
+| 3. Game layer | XP, levels, streaks, HUD, animations | Next |
 | 4. Endgame | Quest calendar/backfill, results screen, year stats | — |
 
 ## Stack
@@ -66,22 +66,33 @@ The Neon integration also adds `POSTGRES_*` / `PG*` variables. The app only uses
 ```
 src/
   app/
-    layout.tsx          fonts, metadata, page column
-    globals.css         @theme palette, sky/grass background, pixel-* classes
-    page.tsx            temporary home (replaced by Today in Phase 2)
-    actions.ts          logout server action
-    login/              page, client form (useActionState), login server action
+    layout.tsx              fonts, metadata, page column
+    globals.css             @theme palette, sky/grass background, pixel-* classes
+    login/                  page, client form (useActionState), login server action
+    (game)/                 everything behind login (route group = no URL segment)
+      layout.tsx            requireUser() + nav (TODAY · QUESTS · logout)
+      page.tsx              Today screen; ?date=YYYY-MM-DD for past days
+      habit-card.tsx        client: progress bar, quick-adds, Set, check toggle (useOptimistic)
+      actions.ts            logProgress, logout
+      quests/
+        page.tsx            quest log (active / upcoming / completed)
+        delete-quest-button.tsx
+        actions.ts          createQuest, deleteQuest, createHabit
+        new/                New Quest page + new-quest-form + new-habit-form
   lib/
-    auth/
-      constants.ts      cookie name + SessionData type (dependency-free, safe for proxy)
-      password.ts       hashPassword / verifyPassword (+ .test.ts)
-      session.ts        getSession(), requireUser() — server-only
-    db/
-      schema.ts         all tables + enums (single source of DB shape)
-      client.ts         Drizzle client
-  proxy.ts              redirects signed-out requests to /login
-scripts/seed.ts         idempotent seed
-drizzle/                generated SQL migrations (committed)
+    types.ts                HABIT_UNITS, QUEST_PERIODS (shared by schema + logic)
+    dates.ts                Central-time "today", date math, labels (+ test)
+    quests.ts               questEndDate, suggestQuestName, questStatus (+ test)
+    logging.ts              quick-add sizing, progress, formatting (+ test)
+    palette.ts              habit colors + icon choices
+    validation.ts           Zod schemas for every action (+ test)
+    game/targets.ts         buildDayHabits — the max-target rule (+ test)
+    queries/                day.ts (getDayHabits), quests.ts (listQuests, listLibraryHabits)
+    auth/                   constants, password (+ test), session
+    db/                     schema.ts, client.ts
+  proxy.ts                  redirects signed-out requests to /login
+scripts/seed.ts             idempotent seed
+drizzle/                    generated SQL migrations (committed)
 ```
 
 ## Database & migrations
@@ -97,6 +108,15 @@ To change the schema:
 **Vercel does not run migrations.** Apply them yourself **before merging** a PR that changes the schema.
 
 ⚠️ **Local and production share one Neon database.** Anything you log while testing locally is your real data.
+
+## Logging rules
+
+- One `logs` row per habit per day, holding the running total. Quick-adds upsert `amount + n` (capped at 1,000,000), and **Set** replaces the total (use it for corrections). Check habits are 0 or 1.
+- A habit's target on a day is the **highest** `daily_target` among the quests covering that day (`lib/game/targets.ts`).
+- **Past days:** ◀ on the Today screen, or `/?date=YYYY-MM-DD`. Future and invalid dates redirect to `/`, and the server action rejects future dates too.
+- Quick-add buttons are about 10%, 25% and 50% of the target, rounded to friendly numbers (`lib/logging.ts`).
+- **Deleting a quest keeps its logs** (they belong to the habit), so the year totals stay intact.
+- All "today" logic uses America/Chicago (`lib/dates.ts`).
 
 ## Auth
 
@@ -144,3 +164,4 @@ Pushing or merging to `main` triggers an automatic production deploy on Vercel. 
 - `npm audit` reports moderate advisories inside `drizzle-kit` (esbuild). It's a dev-only tool that is never deployed. Don't run `audit fix --force` (it downgrades drizzle-kit).
 - `@types/node` is pinned to v24 to satisfy Vitest 5's peer range and match Vercel's Node 24 runtime.
 - `AGENTS.md` is rewritten by `next dev`. Commit it as-is.
+- If you move or rename folders under `src/app` while `npm run dev` is running, restart it. Turbopack can stop watching the new folder and serve pages without their Tailwind classes, or return 500s.
