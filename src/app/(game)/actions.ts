@@ -2,13 +2,16 @@
 
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { getSession, requireUser } from "@/lib/auth/session";
-import { todayInChicago } from "@/lib/dates";
+import { isIsoDate, todayInChicago } from "@/lib/dates";
 import { db } from "@/lib/db/client";
 import { habits, logs } from "@/lib/db/schema";
 import { logProgressSchema, MAX_AMOUNT, type LogProgressInput } from "@/lib/validation";
+
+import { NUDGE_DISMISSED_COOKIE } from "./nudge-cookie";
 
 export type ActionResult = { ok: true } | { error: string };
 
@@ -41,6 +44,20 @@ export async function logProgress(input: LogProgressInput): Promise<ActionResult
 
   revalidatePath("/");
   return { ok: true };
+}
+
+/** Hide the evening nudge for `date` only; it returns the next evening. */
+export async function dismissNudge(date: string) {
+  await requireUser();
+  if (!isIsoDate(date)) return;
+  (await cookies()).set(NUDGE_DISMISSED_COOKIE, date, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 2,
+    path: "/",
+  });
+  revalidatePath("/");
 }
 
 export async function logout() {

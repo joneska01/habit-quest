@@ -1,14 +1,18 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/auth/session";
-import { addDays, formatDayLabel, isIsoDate, todayInChicago } from "@/lib/dates";
+import { addDays, formatDayLabel, hourInChicago, isIsoDate, todayInChicago } from "@/lib/dates";
+import { nudgeFor } from "@/lib/game/nudge";
 import { getDayHabits } from "@/lib/queries/day";
 import { getGameState } from "@/lib/queries/game";
 
 import { DayBanner } from "./day-banner";
 import { HabitCard } from "./habit-card";
 import { Hud } from "./hud";
+import { NudgeBanner } from "./nudge-banner";
+import { NUDGE_DISMISSED_COOKIE } from "./nudge-cookie";
 
 function dayHref(date: string, today: string) {
   return date === today ? "/" : `/?date=${date}`;
@@ -29,10 +33,16 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
     getGameState(userId, today),
   ]);
   const cleared = dayHabits.filter((h) => h.amount >= h.target).length;
+  const dismissedFor = (await cookies()).get(NUDGE_DISMISSED_COOKIE)?.value;
+  const nudge =
+    isToday && dismissedFor !== today
+      ? nudgeFor({ dayHabits, perfectStreak: player.perfectStreak, habitStreaks, hour: hourInChicago() })
+      : null;
 
   return (
     <div className="flex flex-col gap-5">
       <Hud {...player} />
+      {nudge && <NudgeBanner nudge={nudge} date={today} />}
       <header className="flex items-center justify-between gap-2">
         <Link href={dayHref(addDays(date, -1), today)} className="pixel-btn bg-cloud" aria-label="Previous day">
           ◀

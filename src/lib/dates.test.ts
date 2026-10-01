@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { addDays, eachDay, endOfMonth, formatDayLabel, formatRange, isIsoDate, todayInChicago } from "./dates";
+import { addDays, eachDay, endOfMonth, hourInChicago, formatDayLabel, formatRange, isIsoDate, todayInChicago } from "./dates";
 
 describe("todayInChicago", () => {
   it("is still the previous day late in the evening Central (CDT, UTC-5)", () => {
@@ -51,5 +51,14 @@ describe("eachDay", () => {
   it("lists dates inclusively", () => {
     expect(eachDay("2026-10-30", "2026-11-02")).toEqual(["2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02"]);
     expect(eachDay("2026-10-02", "2026-10-01")).toEqual([]);
+  });
+});
+
+describe("hourInChicago", () => {
+  it("returns the Central hour (0–23) across DST", () => {
+    expect(hourInChicago(new Date("2026-10-01T22:30:00Z"))).toBe(17); // CDT
+    expect(hourInChicago(new Date("2026-10-02T04:59:00Z"))).toBe(23);
+    expect(hourInChicago(new Date("2026-10-02T05:00:00Z"))).toBe(0);
+    expect(hourInChicago(new Date("2026-12-01T23:00:00Z"))).toBe(17); // CST
   });
 });
