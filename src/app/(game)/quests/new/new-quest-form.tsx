@@ -105,7 +105,7 @@ export function NewQuestForm({ library, today }: { library: LibraryHabit[]; toda
       </fieldset>
 
       {error && (
-        <p role="alert" className="font-bold text-brick">
+        <p role="alert" className="font-bold text-danger">
           {error}
         </p>
       )}

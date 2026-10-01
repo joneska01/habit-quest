@@ -2,6 +2,7 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 
+import { XP_PER_HABIT } from "@/lib/game/score";
 import type { DayHabit } from "@/lib/game/targets";
 import { formatAmount, progressFraction, quickAddAmounts, unitLabel } from "@/lib/logging";
 import { colorVar } from "@/lib/palette";
@@ -12,7 +13,7 @@ type Change = { mode: "add" | "set"; amount: number };
 
 const SEGMENTS = 10;
 
-export function HabitCard({ habit, date }: { habit: DayHabit; date: string }) {
+export function HabitCard({ habit, date, streak }: { habit: DayHabit; date: string; streak: number }) {
   const [amount, applyOptimistic] = useOptimistic(habit.amount, (current: number, change: Change) =>
     change.mode === "add" ? current + change.amount : change.amount,
   );
@@ -24,6 +25,14 @@ export function HabitCard({ habit, date }: { habit: DayHabit; date: string }) {
   const fraction = progressFraction(amount, habit.target);
   const cleared = amount >= habit.target;
   const filled = Math.floor(fraction * SEGMENTS);
+
+  // Pop a "+10 XP" coin when this habit flips to cleared (not on first render).
+  const [seenCleared, setSeenCleared] = useState(cleared);
+  const [coinPops, setCoinPops] = useState(0);
+  if (cleared !== seenCleared) {
+    setSeenCleared(cleared);
+    if (cleared) setCoinPops((n) => n + 1);
+  }
 
   function submit(change: Change) {
     setError(null);
@@ -46,7 +55,7 @@ export function HabitCard({ habit, date }: { habit: DayHabit; date: string }) {
 
   return (
     <article
-      className={`pixel-card flex flex-col gap-3 p-4 ${cleared ? "outline-4 outline-offset-2 outline-coin" : ""}`}
+      className={`pixel-card relative flex flex-col gap-3 p-4 ${cleared ? "outline-4 outline-offset-2 outline-coin" : ""}`}
       style={{ "--habit": colorVar(habit.color) } as React.CSSProperties}
     >
       <div className="flex items-center gap-3">
@@ -54,7 +63,14 @@ export function HabitCard({ habit, date }: { habit: DayHabit; date: string }) {
           {habit.icon}
         </span>
         <div className="flex-1">
-          <h2 className="font-pixel text-xs leading-relaxed">{habit.name.toUpperCase()}</h2>
+          <h2 className="font-pixel text-xs leading-relaxed">
+            {habit.name.toUpperCase()}
+            {streak > 0 && (
+              <span className="ml-2 font-body text-sm font-bold" title={`${streak}-day streak`}>
+                🔥{streak}
+              </span>
+            )}
+          </h2>
           {habit.unit !== "check" && (
             <p className="font-bold">
               {formatAmount(amount)} / {formatAmount(habit.target)} {unit}
@@ -136,8 +152,18 @@ export function HabitCard({ habit, date }: { habit: DayHabit; date: string }) {
         </div>
       )}
 
+      {coinPops > 0 && (
+        <span
+          key={coinPops}
+          className="anim-coin-pop pointer-events-none absolute top-2 right-4 border-2 border-ink bg-coin px-2 py-1 font-pixel text-[10px]"
+          aria-hidden
+        >
+          🪙 +{XP_PER_HABIT} XP
+        </span>
+      )}
+
       {error && (
-        <p role="alert" className="font-bold text-brick">
+        <p role="alert" className="font-bold text-danger">
           {error}
         </p>
       )}

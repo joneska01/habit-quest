@@ -4,8 +4,11 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
 import { addDays, formatDayLabel, isIsoDate, todayInChicago } from "@/lib/dates";
 import { getDayHabits } from "@/lib/queries/day";
+import { getGameState } from "@/lib/queries/game";
 
+import { DayBanner } from "./day-banner";
 import { HabitCard } from "./habit-card";
+import { Hud } from "./hud";
 
 function dayHref(date: string, today: string) {
   return date === today ? "/" : `/?date=${date}`;
@@ -21,11 +24,15 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
   const date = param ?? today;
   const isToday = date === today;
 
-  const dayHabits = await getDayHabits(userId, date);
+  const [dayHabits, { habitStreaks, ...player }] = await Promise.all([
+    getDayHabits(userId, date),
+    getGameState(userId, today),
+  ]);
   const cleared = dayHabits.filter((h) => h.amount >= h.target).length;
 
   return (
     <div className="flex flex-col gap-5">
+      <Hud {...player} />
       <header className="flex items-center justify-between gap-2">
         <Link href={dayHref(addDays(date, -1), today)} className="pixel-btn bg-cloud" aria-label="Previous day">
           ◀
@@ -55,11 +62,14 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
         </div>
       ) : (
         <>
-          <p className="pixel-card bg-coin px-4 py-2 text-center font-pixel text-xs">
-            {cleared} / {dayHabits.length} CLEARED {cleared === dayHabits.length ? "🏆" : ""}
-          </p>
+          <DayBanner key={date} cleared={cleared} total={dayHabits.length} />
           {dayHabits.map((habit) => (
-            <HabitCard key={`${habit.habitId}-${date}`} habit={habit} date={date} />
+            <HabitCard
+              key={`${habit.habitId}-${date}`}
+              habit={habit}
+              date={date}
+              streak={isToday ? (habitStreaks[habit.habitId] ?? 0) : 0}
+            />
           ))}
         </>
       )}
