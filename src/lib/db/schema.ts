@@ -12,8 +12,10 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 
-export const habitUnit = pgEnum("habit_unit", ["count", "minutes", "check"]);
-export const questPeriod = pgEnum("quest_period", ["week", "month"]);
+import { HABIT_UNITS, QUEST_PERIODS } from "../types";
+
+export const habitUnit = pgEnum("habit_unit", HABIT_UNITS);
+export const questPeriod = pgEnum("quest_period", QUEST_PERIODS);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
