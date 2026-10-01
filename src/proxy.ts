@@ -16,5 +16,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!login|_next/static|_next/image|favicon.ico|icon.png).*)"],
+  // Icons and the manifest must load without a session: phones fetch them on their own.
+  matcher: ["/((?!login|_next/static|_next/image|icon|apple-icon|manifest.webmanifest).*)"],
 };
