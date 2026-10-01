@@ -10,6 +10,8 @@ const isoInZone = new Intl.DateTimeFormat("en-CA", {
   day: "2-digit",
 });
 
+const hourInZone = new Intl.DateTimeFormat("en-US", { timeZone: TIME_ZONE, hour: "numeric", hourCycle: "h23" });
+
 const dayLabel = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
   weekday: "short",
@@ -29,6 +31,11 @@ function fromUtc(d: Date): string {
 
 export function todayInChicago(now: Date = new Date()): string {
   return isoInZone.format(now);
+}
+
+/** Current hour (0–23) in Central time. */
+export function hourInChicago(now: Date = new Date()): number {
+  return Number(hourInZone.format(now));
 }
 
 export function addDays(date: string, days: number): string {

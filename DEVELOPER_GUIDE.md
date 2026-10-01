@@ -17,7 +17,8 @@ A phone-first habit tracker with a bright retro 8-bit platformer feel. Habits ar
 | 3. Game layer | XP, levels, streaks, HUD, animations | ✅ Done |
 | 4. Endgame | Quest calendar, results screen, year stats, undo, autofill login | ✅ Done |
 | + Home screen icon | Pixel-star icon, web manifest, standalone iPhone launch | ✅ Done |
-| Nudges | In-app banner, then iPhone push | Scoped: [`nudges-scope.md`](docs/superpowers/specs/2026-10-01-nudges-scope.md) |
+| Nudges N1 | Evening in-app banner (5 pm) | ✅ Done |
+| Nudges N2 | iPhone push at 7 pm | Next — see [`nudges-scope.md`](docs/superpowers/specs/2026-10-01-nudges-scope.md) |
 
 ## Stack
 
@@ -82,6 +83,8 @@ src/
       habit-card.tsx        client: progress bar, quick-adds, Set, check toggle (useOptimistic), streak, coin pop, undo
       hud.tsx               client: level, XP bar, perfect-day streak, LEVEL UP! banner
       day-banner.tsx        client: x / y CLEARED → PERFECT DAY with star burst
+      nudge-banner.tsx      evening reminder + ✕ dismiss (server action sets a per-day cookie)
+      nudge-cookie.ts       cookie name (kept out of actions.ts: "use server" files export async fns only)
       actions.ts            logProgress, logout
       quests/
         page.tsx            quest log (active / upcoming / completed)
@@ -103,6 +106,7 @@ src/
     game/score.ts           target calendar, XP, streaks, computeGameState (+ test)
     game/report.ts          grade, longestStreak, questReport (+ test)
     game/stats.ts           yearSummary, heatBin (+ test)
+    game/nudge.ts           nudgeFor + NUDGE_HOUR — shared by banner and (N2) push (+ test)
     grade-style.ts          grade → color
     queries/                scoring.ts (loadScoringData — shared loader), day.ts, quests.ts, game.ts
     auth/                   constants, password (+ test), session
@@ -152,6 +156,13 @@ Nothing game-related is stored. `getGameState` loads the quest windows and all l
 - **Grade:** S ≥ 95%, A ≥ 85%, B ≥ 70%, C ≥ 50%, D below that. *Best streak* on the results screen is the longest run inside the quest. The 🔥 on Today is the *current* run.
 - **Year heatmap:** one green hue in 5 bins (0, <50%, <80%, <100%, 100%). Days with no quest are dashed. Every cell has a tooltip and aria-label, and the "Year totals" list is the table version of the data.
 - All three pages and the HUD read the same `loadScoringData`, so they always agree.
+
+## Nudges
+
+- `nudgeFor` (pure, tested) returns one message, or `null` before `NUDGE_HOUR` (17 = 5 pm Central), when all habits are cleared, or when nothing is tracked today.
+- **Title priority:** perfect-day streak at risk, then the longest habit streak at risk (≥ 2 days), then "Nothing logged yet today", then "N habits left today". The body lists up to 3 remaining habits plus the XP still available.
+- **Banner:** Today screen only (not past days). ✕ calls `dismissNudge(date)`, which sets the httpOnly cookie `hq_nudge_dismissed=<date>`, so it's hidden for that day only. No localStorage and no flash on reload.
+- **To preview the banner before 5 pm locally,** temporarily lower `NUDGE_HOUR`, and don't commit that.
 
 ## Undo
 
@@ -214,6 +225,7 @@ Pushing or merging to `main` triggers an automatic production deploy on Vercel. 
 - Don't run `npm run build` while `npm run dev` is running. It overwrites `.next` and kills the dev server.
 - `npm audit` reports moderate advisories inside `drizzle-kit` (esbuild). It's a dev-only tool that is never deployed. Don't run `audit fix --force` (it downgrades drizzle-kit).
 - `@types/node` is pinned to v24 to satisfy Vitest 5's peer range and match Vercel's Node 24 runtime.
+- Files marked `"use server"` may only export async functions. Put shared constants elsewhere (see `nudge-cookie.ts`).
 - `AGENTS.md` is rewritten by `next dev`. Commit it as-is.
 - A route whose path starts with `icon`, `apple-icon` or `manifest.webmanifest` bypasses the login proxy (see the matcher). Don't name real pages that way.
 - If you move or rename folders under `src/app` while `npm run dev` is running, restart it. Turbopack can stop watching the new folder and serve pages without their Tailwind classes, or return 500s.

@@ -1,6 +1,9 @@
 # Habit Quest — Nudges: Scope
 
-**Date:** 2026-10-01 · **Status:** Scoping. Nothing is built yet; waiting on Katie's choices (§6).
+**Date:** 2026-10-01 · **Status:** N1 (banner) built. N2 (push) is next.
+
+**Katie's decisions:** banner from **5 pm**, push at **7 pm**, fire on **any unfinished evening**, **no morning** message.
+**N2 timing note:** Hobby cron is UTC with no DST, so schedule **two** daily crons (`0 0 * * *` and `0 1 * * *`) and send only when the Central hour is 19. That keeps it at 7 pm all year.
 
 ## 1. Goal
 Remind Katie to finish her habits **before a streak breaks**, without becoming noise. A nudge should only fire when it's useful: today is unfinished **and** a streak is at stake (or nothing is logged yet late in the day). A finished day means silence.
