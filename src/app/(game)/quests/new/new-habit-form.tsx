@@ -77,7 +77,7 @@ export function NewHabitForm() {
         </fieldset>
 
         {state.error && (
-          <p role="alert" className="font-bold text-brick">
+          <p role="alert" className="font-bold text-danger">
             {state.error}
           </p>
         )}
