@@ -12,14 +12,21 @@ export type QuestSummary = {
   period: QuestPeriod;
   startDate: string;
   endDate: string;
-  habits: { habitId: number; name: string; icon: string; unit: HabitUnit; dailyTarget: number }[];
+  habits: { habitId: number; name: string; icon: string; color: string; unit: HabitUnit; dailyTarget: number }[];
 };
 
 export async function listQuests(userId: number): Promise<QuestSummary[]> {
   const rows = await db
     .select({
       quest: { id: quests.id, name: quests.name, period: quests.period, startDate: quests.startDate, endDate: quests.endDate },
-      habit: { habitId: habits.id, name: habits.name, icon: habits.icon, unit: habits.unit, dailyTarget: questHabits.dailyTarget },
+      habit: {
+        habitId: habits.id,
+        name: habits.name,
+        icon: habits.icon,
+        color: habits.color,
+        unit: habits.unit,
+        dailyTarget: questHabits.dailyTarget,
+      },
     })
     .from(quests)
     .innerJoin(questHabits, eq(questHabits.questId, quests.id))
@@ -48,5 +55,19 @@ export async function listLibraryHabits(userId: number) {
     })
     .from(habits)
     .where(and(eq(habits.userId, userId), eq(habits.archived, false)))
+    .orderBy(asc(habits.id));
+}
+
+export async function getQuest(userId: number, questId: number): Promise<QuestSummary | null> {
+  const all = await listQuests(userId);
+  return all.find((q) => q.id === questId) ?? null;
+}
+
+/** All of the user's habits (including archived) for labeling stats. */
+export async function listUserHabits(userId: number) {
+  return db
+    .select({ id: habits.id, name: habits.name, unit: habits.unit, icon: habits.icon, color: habits.color })
+    .from(habits)
+    .where(eq(habits.userId, userId))
     .orderBy(asc(habits.id));
 }

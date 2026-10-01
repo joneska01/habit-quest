@@ -15,7 +15,7 @@ A phone-first habit tracker with a bright retro 8-bit platformer feel. Habits ar
 | 1. Foundation | Schema, auth, seed, base theme, Developer Guide | ✅ Done |
 | 2. Playable | Habit library, create quest, Today logging, past-day logging | ✅ Done |
 | 3. Game layer | XP, levels, streaks, HUD, animations | ✅ Done |
-| 4. Endgame | Quest calendar, results screen, year stats | Next |
+| 4. Endgame | Quest calendar, results screen, year stats, undo, autofill login | ✅ Done |
 
 ## Stack
 
@@ -71,9 +71,9 @@ src/
     globals.css             @theme palette, sky/grass background, pixel-* classes
     login/                  page, client form (useActionState), login server action
     (game)/                 everything behind login (route group = no URL segment)
-      layout.tsx            requireUser() + nav (TODAY · QUESTS · logout)
+      layout.tsx            requireUser() + nav (TODAY · QUESTS · STATS · logout)
       page.tsx              Today screen; ?date=YYYY-MM-DD for past days
-      habit-card.tsx        client: progress bar, quick-adds, Set, check toggle (useOptimistic), streak, coin pop
+      habit-card.tsx        client: progress bar, quick-adds, Set, check toggle (useOptimistic), streak, coin pop, undo
       hud.tsx               client: level, XP bar, perfect-day streak, LEVEL UP! banner
       day-banner.tsx        client: x / y CLEARED → PERFECT DAY with star burst
       actions.ts            logProgress, logout
@@ -82,6 +82,9 @@ src/
         delete-quest-button.tsx
         actions.ts          createQuest, deleteQuest, createHabit
         new/                New Quest page + new-quest-form + new-habit-form
+        [id]/page.tsx         quest calendar (days × habits); tap a day → /?date=
+        [id]/results/         grade, completion, totals, best streaks, XP
+      stats/page.tsx        year totals + daily-completion heatmap (?year=)
   lib/
     types.ts                HABIT_UNITS, QUEST_PERIODS (shared by schema + logic)
     dates.ts                Central-time "today", date math, labels (+ test)
@@ -92,7 +95,10 @@ src/
     game/targets.ts         buildDayHabits — the max-target rule (+ test)
     game/levels.ts          level curve (+ test)
     game/score.ts           target calendar, XP, streaks, computeGameState (+ test)
-    queries/                day.ts, quests.ts, game.ts (getGameState)
+    game/report.ts          grade, longestStreak, questReport (+ test)
+    game/stats.ts           yearSummary, heatBin (+ test)
+    grade-style.ts          grade → color
+    queries/                scoring.ts (loadScoringData — shared loader), day.ts, quests.ts, game.ts
     auth/                   constants, password (+ test), session
     db/                     schema.ts, client.ts
   proxy.ts                  redirects signed-out requests to /login
@@ -134,12 +140,26 @@ Nothing game-related is stored. `getGameState` loads the quest windows and all l
 
 **Testing the game safely:** your real account shares the DB, so create a throwaway user (insert into `users` with password_hash `!disabled`, add habits, a quest and backfilled logs), mint a cookie for its id, and delete the user afterward (everything cascades).
 
+## Quests, results and stats
+
+- **Quest completion %** averages `min(amount / target, 1)` over every (habit, day) cell, using **this quest's own targets**. Elapsed days only while active.
+- **Grade:** S ≥ 95%, A ≥ 85%, B ≥ 70%, C ≥ 50%, D below that. *Best streak* on the results screen is the longest run inside the quest. The 🔥 on Today is the *current* run.
+- **Year heatmap:** one green hue in 5 bins (0, <50%, <80%, <100%, 100%). Days with no quest are dashed. Every cell has a tooltip and aria-label, and the "Year totals" list is the table version of the data.
+- All three pages and the HUD read the same `loadScoringData`, so they always agree.
+
+## Undo
+
+- Each habit card keeps an undo stack for the current page visit, and the "↶ UNDO +25 (n)" button appears below the quick-add buttons.
+- Undoing a quick-add sends `add −n` rather than "set to the old value", so it stays correct with rapid taps. Undoing a SET restores the previous total.
+- The server clamps totals to 0..1,000,000. After a reload the stack is gone, and **SET** is the correction tool.
+
 ## Auth
 
 - There are two gates:
   1. `src/proxy.ts` checks the cookie on every request except `/login` and static files.
   2. Every server page and action calls `requireUser()`, which returns the `userId`.
 - The cookie `hq_session` is httpOnly, sameSite=lax, secure in production, and lasts 30 days.
+- **Auto-login on autofill:** the login form submits by itself only when a password manager fills it (no typing `inputType`), once per page load. Typing still needs Enter or PRESS START. Chrome desktop may hide autofilled passwords until you interact with the page, so it might not fire there.
 - **Reset your password:** change `SEED_PASSWORD` in `.env.local`, then run `npm run db:seed`.
 - **Test logged-in pages without typing a password:** mint a cookie from the dev secret.
 
