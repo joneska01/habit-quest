@@ -87,3 +87,13 @@ export const logs = pgTable(
     check("logs_amount_nonnegative", sql`${t.amount} >= 0`),
   ],
 );
+
+/** One row per device that turned on reminders (spec: nudges-scope.md, N2). */
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
