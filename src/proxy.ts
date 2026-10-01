@@ -16,6 +16,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Icons and the manifest must load without a session: phones fetch them on their own.
-  matcher: ["/((?!login|_next/static|_next/image|icon|apple-icon|manifest.webmanifest).*)"],
+  // Icons, manifest and service worker load without a session (phones fetch them on their own);
+  // the cron route is protected by CRON_SECRET instead.
+  matcher: ["/((?!login|_next/static|_next/image|icon|apple-icon|manifest.webmanifest|sw.js|api/cron).*)"],
 };

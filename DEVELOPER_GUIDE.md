@@ -18,7 +18,7 @@ A phone-first habit tracker with a bright retro 8-bit platformer feel. Habits ar
 | 4. Endgame | Quest calendar, results screen, year stats, undo, autofill login | ✅ Done |
 | + Home screen icon | Pixel-star icon, web manifest, standalone iPhone launch | ✅ Done |
 | Nudges N1 | Evening in-app banner (5 pm) | ✅ Done |
-| Nudges N2 | iPhone push at 7 pm | Next — see [`nudges-scope.md`](docs/superpowers/specs/2026-10-01-nudges-scope.md) |
+| Nudges N2 | iPhone push at 7 pm | ✅ Done (verify on iPhone after deploy) |
 
 ## Stack
 
@@ -58,6 +58,9 @@ Use port **3100** so Habit Quest doesn't collide with the Oasis dashboard on 300
 |---|---|---|
 | `DATABASE_URL` | Vercel, all environments (added by the Neon integration) | Postgres connection string |
 | `SESSION_SECRET` | Vercel. **Production + Preview:** a sensitive secret. **Development:** a separate, non-sensitive value. | Encrypts the session cookie. Must be 32+ characters. |
+| `VAPID_PUBLIC_KEY` | Vercel, all environments (config) and `.env.local` | Push key the browser subscribes with (passed to the client as a prop) |
+| `VAPID_PRIVATE_KEY` | Vercel: sensitive in Production/Preview, config in Development, plus `.env.local` | Signs pushes. **Same pair everywhere**: a subscription only works with the pair that made it. |
+| `CRON_SECRET` | Vercel Production (sensitive). A separate value in `.env.local` | Vercel sends it as `Authorization: Bearer …` to the cron route |
 | `SEED_EMAIL` | `.env.local` only | Your login email |
 | `SEED_PASSWORD` | `.env.local` only, never committed | Your login password. Only its bcrypt hash is stored. |
 | `SEED_DISPLAY_NAME` | `.env.local` only | Name shown in the app, e.g. "Katie" |
@@ -85,6 +88,9 @@ src/
       day-banner.tsx        client: x / y CLEARED → PERFECT DAY with star burst
       nudge-banner.tsx      evening reminder + ✕ dismiss (server action sets a per-day cookie)
       nudge-cookie.ts       cookie name (kept out of actions.ts: "use server" files export async fns only)
+      reminder-toggle.tsx   client: 🔔 card — unsupported / blocked / TURN ON / SEND TEST / TURN OFF
+      push-actions.ts       savePushSubscription, deletePushSubscription, sendTestPush
+    api/cron/nudge/route.ts 7 pm push sender (CRON_SECRET); called by vercel.json crons
       actions.ts            logProgress, logout
       quests/
         page.tsx            quest log (active / upcoming / completed)
@@ -106,13 +112,17 @@ src/
     game/score.ts           target calendar, XP, streaks, computeGameState (+ test)
     game/report.ts          grade, longestStreak, questReport (+ test)
     game/stats.ts           yearSummary, heatBin (+ test)
-    game/nudge.ts           nudgeFor + NUDGE_HOUR — shared by banner and (N2) push (+ test)
+    game/nudge.ts           nudgeFor + NUDGE_HOUR — shared by banner and push (+ test)
+    push-logic.ts           PUSH_HOUR, isPushHour, isGoneStatus, urlBase64ToUint8Array (+ test)
+    push.ts                 sendToUser via web-push; prunes 404/410 subscriptions (server-only)
     grade-style.ts          grade → color
-    queries/                scoring.ts (loadScoringData — shared loader), day.ts, quests.ts, game.ts
+    queries/                scoring.ts (loadScoringData — shared loader), day.ts, quests.ts, game.ts, nudge.ts
     auth/                   constants, password (+ test), session
     db/                     schema.ts, client.ts
   proxy.ts                  redirects signed-out requests to /login
 scripts/seed.ts             idempotent seed
+public/sw.js                service worker: shows push, opens the app on tap
+vercel.json                 two daily crons (00:00 + 01:00 UTC) → /api/cron/nudge
 drizzle/                    generated SQL migrations (committed)
 ```
 
@@ -163,6 +173,21 @@ Nothing game-related is stored. `getGameState` loads the quest windows and all l
 - **Title priority:** perfect-day streak at risk, then the longest habit streak at risk (≥ 2 days), then "Nothing logged yet today", then "N habits left today". The body lists up to 3 remaining habits plus the XP still available.
 - **Banner:** Today screen only (not past days). ✕ calls `dismissNudge(date)`, which sets the httpOnly cookie `hq_nudge_dismissed=<date>`, so it's hidden for that day only. No localStorage and no flash on reload.
 - **To preview the banner before 5 pm locally,** temporarily lower `NUDGE_HOUR`, and don't commit that.
+
+## Push reminders (N2)
+
+- **Flow:**
+  1. The 🔔 card (Today) registers `/sw.js` and, on a tap, asks permission and subscribes with `VAPID_PUBLIC_KEY`.
+  2. `savePushSubscription` stores it in `push_subscriptions`.
+  3. Vercel calls `/api/cron/nudge` at 00:00 and 01:00 UTC. Only the run in the **7 pm Central** hour sends, so 7 pm holds across DST. Hobby crons fire anywhere within the hour.
+  4. For each subscribed user, `getNudgeForUser` builds the same message as the banner. No message means no push.
+- **iPhone requirements:** iOS 16.4+, opened **from the Home Screen** (push doesn't exist in a Safari tab), and permission requested from a tap.
+- **SEND TEST** sends tonight's nudge now, prefixed `[TEST]`, or a "reminders are on" note if nothing is left.
+- **Push TTL is 3 h,** so an undelivered nudge is dropped rather than arriving overnight. Subscriptions the push service reports as 404/410 are deleted.
+- **Testing locally:**
+  - `curl -H "Authorization: Bearer $CRON_SECRET" "http://localhost:3100/api/cron/nudge"` returns `skipped` outside 7 pm.
+  - Scripts importing `server-only` modules need `NODE_OPTIONS=--conditions=react-server`.
+- **Rotating VAPID keys** invalidates every subscription. Everyone would need to tap TURN ON again.
 
 ## Undo
 
@@ -223,6 +248,7 @@ Pushing or merging to `main` triggers an automatic production deploy on Vercel. 
 
 - `vercel env pull` **overwrites** `.env.local`. Re-add your `SEED_*` lines afterward.
 - Don't run `npm run build` while `npm run dev` is running. It overwrites `.next` and kills the dev server.
+- Crons are in `vercel.json`, not `vercel.ts`. `@vercel/config` pulled in a high-severity `path-to-regexp` advisory just to type two lines.
 - `npm audit` reports moderate advisories inside `drizzle-kit` (esbuild). It's a dev-only tool that is never deployed. Don't run `audit fix --force` (it downgrades drizzle-kit).
 - `@types/node` is pinned to v24 to satisfy Vitest 5's peer range and match Vercel's Node 24 runtime.
 - Files marked `"use server"` may only export async functions. Put shared constants elsewhere (see `nudge-cookie.ts`).

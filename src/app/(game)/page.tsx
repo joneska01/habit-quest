@@ -13,6 +13,7 @@ import { HabitCard } from "./habit-card";
 import { Hud } from "./hud";
 import { NudgeBanner } from "./nudge-banner";
 import { NUDGE_DISMISSED_COOKIE } from "./nudge-cookie";
+import { ReminderToggle } from "./reminder-toggle";
 
 function dayHref(date: string, today: string) {
   return date === today ? "/" : `/?date=${date}`;
@@ -83,6 +84,8 @@ export default async function TodayPage({ searchParams }: { searchParams: Promis
           ))}
         </>
       )}
+
+      {isToday && process.env.VAPID_PUBLIC_KEY && <ReminderToggle vapidPublicKey={process.env.VAPID_PUBLIC_KEY} />}
     </div>
   );
 }
