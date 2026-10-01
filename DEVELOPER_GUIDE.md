@@ -14,8 +14,8 @@ A phone-first habit tracker with a bright retro 8-bit platformer feel. Habits ar
 |---|---|---|
 | 1. Foundation | Schema, auth, seed, base theme, Developer Guide | ✅ Done |
 | 2. Playable | Habit library, create quest, Today logging, past-day logging | ✅ Done |
-| 3. Game layer | XP, levels, streaks, HUD, animations | Next |
-| 4. Endgame | Quest calendar/backfill, results screen, year stats | — |
+| 3. Game layer | XP, levels, streaks, HUD, animations | ✅ Done |
+| 4. Endgame | Quest calendar, results screen, year stats | Next |
 
 ## Stack
 
@@ -66,13 +66,16 @@ The Neon integration also adds `POSTGRES_*` / `PG*` variables. The app only uses
 ```
 src/
   app/
-    layout.tsx              fonts, metadata, page column
+    layout.tsx              fonts, metadata, page column, <Sky />
+    sky.tsx                 decorative pixel clouds
     globals.css             @theme palette, sky/grass background, pixel-* classes
     login/                  page, client form (useActionState), login server action
     (game)/                 everything behind login (route group = no URL segment)
       layout.tsx            requireUser() + nav (TODAY · QUESTS · logout)
       page.tsx              Today screen; ?date=YYYY-MM-DD for past days
-      habit-card.tsx        client: progress bar, quick-adds, Set, check toggle (useOptimistic)
+      habit-card.tsx        client: progress bar, quick-adds, Set, check toggle (useOptimistic), streak, coin pop
+      hud.tsx               client: level, XP bar, perfect-day streak, LEVEL UP! banner
+      day-banner.tsx        client: x / y CLEARED → PERFECT DAY with star burst
       actions.ts            logProgress, logout
       quests/
         page.tsx            quest log (active / upcoming / completed)
@@ -87,7 +90,9 @@ src/
     palette.ts              habit colors + icon choices
     validation.ts           Zod schemas for every action (+ test)
     game/targets.ts         buildDayHabits — the max-target rule (+ test)
-    queries/                day.ts (getDayHabits), quests.ts (listQuests, listLibraryHabits)
+    game/levels.ts          level curve (+ test)
+    game/score.ts           target calendar, XP, streaks, computeGameState (+ test)
+    queries/                day.ts, quests.ts, game.ts (getGameState)
     auth/                   constants, password (+ test), session
     db/                     schema.ts, client.ts
   proxy.ts                  redirects signed-out requests to /login
@@ -118,6 +123,17 @@ To change the schema:
 - **Deleting a quest keeps its logs** (they belong to the habit), so the year totals stay intact.
 - All "today" logic uses America/Chicago (`lib/dates.ts`).
 
+## Game rules (spec §4)
+
+Nothing game-related is stored. `getGameState` loads the quest windows and all logs up to today, and `lib/game/score.ts` computes everything on each render, so backfilling a past day re-scores automatically.
+
+- **XP:** +10 per habit that hits its target on a day, and +25 for a perfect day (every targeted habit met).
+- **Levels:** going from L to L+1 costs `100 + 25 × (L − 1)` (100, 125, 150 …).
+- **Streaks:** consecutive *targeted* days met. Untargeted days are skipped, and an unfinished today doesn't break a streak. Habit streaks show on Today only, since they always end today.
+- **Animations:** the client compares the new server values with the previous ones ("adjust state on prop change", no effects or timers). A habit flipping to cleared gets a coin pop, reaching all-cleared gets the perfect-day burst, and a level increase shows LEVEL UP!. With `prefers-reduced-motion`, animations become a simple show-then-fade.
+
+**Testing the game safely:** your real account shares the DB, so create a throwaway user (insert into `users` with password_hash `!disabled`, add habits, a quest and backfilled logs), mint a cookie for its id, and delete the user afterward (everything cascades).
+
 ## Auth
 
 - There are two gates:
@@ -136,7 +152,9 @@ Set the output as the `hq_session` cookie for `localhost:3100`. This only works 
 ## Theme
 
 Palette tokens (usable as Tailwind classes like `bg-coin`, `text-berry`, `border-ink`):
-`sky`, `sky-light`, `cloud`, `cream`, `grass`, `ground`, `coin`, `brick`, `berry`, `grape`, `ocean`, `lime`, `peach`, `ink`.
+`sky`, `sky-light`, `cloud`, `cream`, `grass`, `ground`, `coin`, `brick`, `berry`, `grape`, `ocean`, `lime`, `peach`, `ink`, `danger` (error text, ~10:1 on cream).
+
+Animation classes: `anim-coin-pop`, `anim-level-up`, `anim-star-burst` (stepped timing for an 8-bit feel).
 
 Component classes in `globals.css`:
 - `pixel-card`: a cream block with a 4px ink border and a hard offset shadow
