@@ -8,9 +8,13 @@ describe("logProgressSchema", () => {
     expect(logProgressSchema.safeParse({ ...base, mode: "add", amount: 25 }).success).toBe(true);
     expect(logProgressSchema.safeParse({ ...base, mode: "set", amount: 0 }).success).toBe(true);
   });
-  it("rejects negative or zero adds, fractions, and bad dates", () => {
+  it("accepts a negative add (undo)", () => {
+    expect(logProgressSchema.safeParse({ ...base, mode: "add", amount: -25 }).success).toBe(true);
+  });
+  it("rejects zero adds, out-of-range adds, negative sets, fractions, and bad dates", () => {
     expect(logProgressSchema.safeParse({ ...base, mode: "add", amount: 0 }).success).toBe(false);
-    expect(logProgressSchema.safeParse({ ...base, mode: "add", amount: -5 }).success).toBe(false);
+    expect(logProgressSchema.safeParse({ ...base, mode: "add", amount: -1_000_001 }).success).toBe(false);
+    expect(logProgressSchema.safeParse({ ...base, mode: "set", amount: -5 }).success).toBe(false);
     expect(logProgressSchema.safeParse({ ...base, mode: "set", amount: 2.5 }).success).toBe(false);
     expect(logProgressSchema.safeParse({ ...base, date: "2026-02-30", mode: "set", amount: 1 }).success).toBe(false);
   });

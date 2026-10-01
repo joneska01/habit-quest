@@ -29,11 +29,12 @@ export async function logProgress(input: LogProgressInput): Promise<ActionResult
 
   await db
     .insert(logs)
-    .values({ userId, habitId, date, amount })
+    .values({ userId, habitId, date, amount: Math.max(0, amount) })
     .onConflictDoUpdate({
       target: [logs.habitId, logs.date],
       set: {
-        amount: mode === "add" ? sql`least(${logs.amount} + ${amount}, ${MAX_AMOUNT})` : amount,
+        // Clamp to 0..MAX so an undo can never go negative.
+        amount: mode === "add" ? sql`greatest(0, least(${logs.amount} + ${amount}, ${MAX_AMOUNT}))` : amount,
         updatedAt: sql`now()`,
       },
     });

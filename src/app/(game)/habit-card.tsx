@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useRef, useState, useTransition } from "react";
 
 import { XP_PER_HABIT } from "@/lib/game/score";
 import type { DayHabit } from "@/lib/game/targets";
@@ -10,16 +10,21 @@ import { colorVar } from "@/lib/palette";
 import { logProgress } from "./actions";
 
 type Change = { mode: "add" | "set"; amount: number };
+/** What to send to reverse a change. Undo of a quick-add is "add −n" so rapid taps stay correct. */
+type UndoEntry = { id: number; label: string; inverse: Change };
 
 const SEGMENTS = 10;
 
 export function HabitCard({ habit, date, streak }: { habit: DayHabit; date: string; streak: number }) {
   const [amount, applyOptimistic] = useOptimistic(habit.amount, (current: number, change: Change) =>
-    change.mode === "add" ? current + change.amount : change.amount,
+    change.mode === "add" ? Math.max(0, current + change.amount) : change.amount,
   );
   const [, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  // Undo history lives for this page visit only; after a reload, SET is the way to correct.
+  const [undoStack, setUndoStack] = useState<UndoEntry[]>([]);
+  const nextUndoId = useRef(0);
 
   const unit = unitLabel(habit.unit);
   const fraction = progressFraction(amount, habit.target);
@@ -34,13 +39,31 @@ export function HabitCard({ habit, date, streak }: { habit: DayHabit; date: stri
     if (cleared) setCoinPops((n) => n + 1);
   }
 
-  function submit(change: Change) {
+  /** Pass `undoLabel` for user actions that should be undoable; omit it when replaying an undo. */
+  function submit(change: Change, undoLabel?: string) {
     setError(null);
+    let undoId: number | undefined;
+    if (undoLabel) {
+      undoId = ++nextUndoId.current;
+      const inverse: Change =
+        change.mode === "add" ? { mode: "add", amount: -change.amount } : { mode: "set", amount };
+      setUndoStack((stack) => [...stack, { id: undoId!, label: undoLabel, inverse }]);
+    }
     startTransition(async () => {
       applyOptimistic(change);
       const result = await logProgress({ habitId: habit.habitId, date, ...change });
-      if ("error" in result) setError(result.error);
+      if ("error" in result) {
+        setError(result.error);
+        if (undoId) setUndoStack((stack) => stack.filter((e) => e.id !== undoId));
+      }
     });
+  }
+
+  function undo() {
+    const last = undoStack.at(-1);
+    if (!last) return;
+    setUndoStack((stack) => stack.slice(0, -1));
+    submit(last.inverse);
   }
 
   function onSet(formData: FormData) {
@@ -50,7 +73,7 @@ export function HabitCard({ habit, date, streak }: { habit: DayHabit; date: stri
       return;
     }
     setEditing(false);
-    submit({ mode: "set", amount: value });
+    if (value !== amount) submit({ mode: "set", amount: value }, "SET");
   }
 
   return (
@@ -137,7 +160,7 @@ export function HabitCard({ habit, date, streak }: { habit: DayHabit; date: stri
               key={step}
               type="button"
               className="pixel-btn min-w-0 bg-cloud px-0 text-[10px]"
-              onClick={() => submit({ mode: "add", amount: step })}
+              onClick={() => submit({ mode: "add", amount: step }, `+${formatAmount(step)}`)}
             >
               +{formatAmount(step)}
             </button>
@@ -150,6 +173,18 @@ export function HabitCard({ habit, date, streak }: { habit: DayHabit; date: stri
             SET
           </button>
         </div>
+      )}
+
+      {undoStack.length > 0 && habit.unit !== "check" && (
+        <button
+          type="button"
+          onClick={undo}
+          className="pixel-btn w-full border-dashed bg-cloud text-[10px] shadow-none"
+          aria-label={`Undo ${undoStack.at(-1)!.label} on ${habit.name}`}
+        >
+          ↶ UNDO {undoStack.at(-1)!.label}
+          {undoStack.length > 1 && <span className="ml-2 opacity-70">({undoStack.length})</span>}
+        </button>
       )}
 
       {coinPops > 0 && (

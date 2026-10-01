@@ -10,7 +10,18 @@ const isoDate = z.string().refine(isIsoDate, "Invalid date");
 const id = z.number().int().positive();
 
 export const logProgressSchema = z.discriminatedUnion("mode", [
-  z.object({ mode: z.literal("add"), habitId: id, date: isoDate, amount: z.number().int().min(1).max(MAX_AMOUNT) }),
+  // Negative adds are undo; zero is a no-op and rejected.
+  z.object({
+    mode: z.literal("add"),
+    habitId: id,
+    date: isoDate,
+    amount: z
+      .number()
+      .int()
+      .min(-MAX_AMOUNT)
+      .max(MAX_AMOUNT)
+      .refine((n) => n !== 0, "Amount can't be zero"),
+  }),
   z.object({ mode: z.literal("set"), habitId: id, date: isoDate, amount: z.number().int().min(0).max(MAX_AMOUNT) }),
 ]);
 export type LogProgressInput = z.infer<typeof logProgressSchema>;
