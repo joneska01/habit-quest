@@ -18,7 +18,8 @@ A phone-first habit tracker with a bright retro 8-bit platformer feel. Habits ar
 | 4. Endgame | Quest calendar, results screen, year stats, undo, autofill login | ✅ Done |
 | + Home screen icon | Pixel-star icon, web manifest, standalone iPhone launch | ✅ Done |
 | Nudges N1 | Evening in-app banner (5 pm) | ✅ Done |
-| Nudges N2 | iPhone push at 7 pm | ✅ Done (verify on iPhone after deploy) |
+| Nudges N2 | iPhone push at 7 pm | ✅ Done (confirmed on iPhone) |
+| Day-2 polish | Edit quest habits, Sunset heatmap, big coin + confetti | ✅ Done |
 
 ## Stack
 
@@ -99,6 +100,8 @@ src/
         new/                New Quest page + new-quest-form + new-habit-form
         [id]/page.tsx         quest calendar (days × habits); tap a day → /?date=
         [id]/results/         grade, completion, totals, best streaks, XP
+        [id]/edit/            edit habits + targets; <dialog> confirm once the quest has started
+        habit-picker.tsx      shared checkbox/target list + useHabitPicks (New and Edit Quest)
       stats/page.tsx        year totals + daily-completion heatmap (?year=)
   lib/
     types.ts                HABIT_UNITS, QUEST_PERIODS (shared by schema + logic)
@@ -116,6 +119,7 @@ src/
     push-logic.ts           PUSH_HOUR, isPushHour, isGoneStatus, urlBase64ToUint8Array (+ test)
     push.ts                 sendToUser via web-push; prunes 404/410 subscriptions (server-only)
     grade-style.ts          grade → color
+    quest-edit.ts           diffQuestHabits / hasChanges for the edit confirmation (+ test)
     queries/                scoring.ts (loadScoringData — shared loader), day.ts, quests.ts, game.ts, nudge.ts
     auth/                   constants, password (+ test), session
     db/                     schema.ts, client.ts
@@ -164,7 +168,8 @@ Nothing game-related is stored. `getGameState` loads the quest windows and all l
 
 - **Quest completion %** averages `min(amount / target, 1)` over every (habit, day) cell, using **this quest's own targets**. Elapsed days only while active.
 - **Grade:** S ≥ 95%, A ≥ 85%, B ≥ 70%, C ≥ 50%, D below that. *Best streak* on the results screen is the longest run inside the quest. The 🔥 on Today is the *current* run.
-- **Year heatmap:** one green hue in 5 bins (0, <50%, <80%, <100%, 100%). Days with no quest are dashed. Every cell has a tooltip and aria-label, and the "Year totals" list is the table version of the data.
+- **Year heatmap ("Sunset"):** white → light pink → pink → purple → deep indigo in 5 bins (0, <50%, <80%, <100%, 100%), plus a ★ on 100% days. It goes light to dark so it reads for colorblind viewers. The colors are the `--color-heat-1…4` tokens. Days with no quest are dashed, and today has a gold outline. Every cell has a tooltip and aria-label, and the "Year totals" list is the table version of the data.
+- **Editing a quest's habits** (✏️ on the quest log or calendar) *rewrites the whole quest* (Katie's choice). Because nothing game-related is stored, every past day of that quest is re-scored with the new list, so XP, streaks, perfect days and the grade can change. Logs are never deleted, so re-adding a habit brings its history back. Started quests require confirmation in a `<dialog>`; upcoming quests save directly.
 - All three pages and the HUD read the same `loadScoringData`, so they always agree.
 
 ## Nudges
@@ -216,7 +221,7 @@ Set the output as the `hq_session` cookie for `localhost:3100`. This only works 
 Palette tokens (usable as Tailwind classes like `bg-coin`, `text-berry`, `border-ink`):
 `sky`, `sky-light`, `cloud`, `cream`, `grass`, `ground`, `coin`, `brick`, `berry`, `grape`, `ocean`, `lime`, `peach`, `ink`, `danger` (error text, ~10:1 on cream).
 
-Animation classes: `anim-coin-pop`, `anim-level-up`, `anim-star-burst` (stepped timing for an 8-bit feel).
+Animation classes: `anim-coin-big` (the large +10 XP coin on clearing a habit), `anim-confetti` (18 pixel pieces, a fixed spread so renders stay pure), `anim-coin-pop` (+25 on a perfect day), `anim-level-up`, `anim-star-burst`. All use stepped timing for an 8-bit feel. With reduced motion, confetti is hidden and the coin just fades.
 
 Component classes in `globals.css`:
 - `pixel-card`: a cream block with a 4px ink border and a hard offset shadow
