@@ -31,7 +31,12 @@ export default async function QuestPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="flex flex-col gap-5">
       <section className="pixel-card flex flex-col gap-3 p-4">
-        <h1 className="font-pixel text-sm leading-relaxed">{quest.name.toUpperCase()}</h1>
+        <div className="flex items-start justify-between gap-2">
+          <h1 className="font-pixel text-sm leading-relaxed">{quest.name.toUpperCase()}</h1>
+          <Link href={`/quests/${quest.id}/edit`} className="pixel-btn shrink-0 bg-cloud px-2 text-[10px]">
+            ✏️ EDIT
+          </Link>
+        </div>
         <p className="font-bold">
           {formatRange(quest.startDate, quest.endDate)} · {quest.period === "week" ? "Weekly" : "Monthly"}
         </p>

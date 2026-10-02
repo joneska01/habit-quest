@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { createHabitSchema, createQuestSchema, logProgressSchema, pushSubscriptionSchema } from "./validation";
+import {
+  createHabitSchema,
+  createQuestSchema,
+  logProgressSchema,
+  pushSubscriptionSchema,
+  updateQuestHabitsSchema,
+} from "./validation";
 
 describe("logProgressSchema", () => {
   const base = { habitId: 1, date: "2026-10-01" };
@@ -71,5 +77,14 @@ describe("pushSubscriptionSchema", () => {
   it("rejects non-https endpoints and missing keys", () => {
     expect(pushSubscriptionSchema.safeParse({ ...valid, endpoint: "http://evil.example/x" }).success).toBe(false);
     expect(pushSubscriptionSchema.safeParse({ endpoint: valid.endpoint, keys: { auth: "x" } }).success).toBe(false);
+  });
+});
+
+describe("updateQuestHabitsSchema", () => {
+  it("accepts a quest id with at least one unique habit", () => {
+    expect(updateQuestHabitsSchema.safeParse({ questId: 1, habits: [{ habitId: 2, dailyTarget: 50 }] }).success).toBe(true);
+  });
+  it("rejects an empty habit list (a quest needs at least one habit)", () => {
+    expect(updateQuestHabitsSchema.safeParse({ questId: 1, habits: [] }).success).toBe(false);
   });
 });
