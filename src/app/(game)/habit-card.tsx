@@ -8,6 +8,7 @@ import { formatAmount, progressFraction, quickAddAmounts, unitLabel } from "@/li
 import { colorVar } from "@/lib/palette";
 
 import { logProgress } from "./actions";
+import { PixelCoin } from "./pixel-coin";
 
 type Change = { mode: "add" | "set"; amount: number };
 /** What to send to reverse a change. Undo of a quick-add is "add −n" so rapid taps stay correct. */
@@ -209,7 +210,7 @@ export function HabitCard({ habit, date, streak }: { habit: DayHabit; date: stri
             />
           ))}
           <span className="anim-coin-big flex items-center gap-2 border-4 border-ink bg-coin px-4 py-2 font-pixel text-base shadow-[4px_4px_0_var(--color-ink)]">
-            <span className="text-3xl">🪙</span>+{XP_PER_HABIT} XP
+            <PixelCoin className="anim-coin-spin h-9 w-[26px]" />+{XP_PER_HABIT} XP
           </span>
         </span>
       )}

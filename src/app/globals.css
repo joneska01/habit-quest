@@ -106,6 +106,13 @@ body {
   38%, 70% { transform: scale(1); opacity: 1; }
   100% { transform: translateY(-56px) scale(1); opacity: 0; }
 }
+/* Classic arcade coin spin: flip edge-on and back in chunky steps. */
+@keyframes coin-spin {
+  0%, 100% { transform: scaleX(1); }
+  25% { transform: scaleX(0.55); }
+  50% { transform: scaleX(0.12); }
+  75% { transform: scaleX(0.55); }
+}
 @keyframes confetti {
   0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
   80% { opacity: 1; }
@@ -121,9 +128,11 @@ body {
 .anim-star-burst { animation: star-burst 0.9s steps(8) forwards; }
 .anim-coin-big { animation: coin-big 1.6s steps(16) forwards; }
 .anim-confetti { animation: confetti 0.9s steps(9) forwards; }
+.anim-coin-spin { animation: coin-spin 0.5s steps(4) infinite; }
 
 @media (prefers-reduced-motion: reduce) {
   .anim-confetti { display: none; }
+  .anim-coin-spin { animation: none; }
   .anim-coin-pop,
   .anim-coin-big,
   .anim-level-up,

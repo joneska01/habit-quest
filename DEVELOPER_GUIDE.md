@@ -84,6 +84,7 @@ src/
     (game)/                 everything behind login (route group = no URL segment)
       layout.tsx            requireUser() + nav (TODAY · QUESTS · STATS · logout)
       page.tsx              Today screen; ?date=YYYY-MM-DD for past days
+      pixel-coin.tsx        8-bit coin sprite (SVG rects) used in the clear celebration
       habit-card.tsx        client: progress bar, quick-adds, Set, check toggle (useOptimistic), streak, coin pop, undo
       hud.tsx               client: level, XP bar, perfect-day streak, LEVEL UP! banner
       day-banner.tsx        client: x / y CLEARED → PERFECT DAY with star burst
@@ -221,7 +222,7 @@ Set the output as the `hq_session` cookie for `localhost:3100`. This only works 
 Palette tokens (usable as Tailwind classes like `bg-coin`, `text-berry`, `border-ink`):
 `sky`, `sky-light`, `cloud`, `cream`, `grass`, `ground`, `coin`, `brick`, `berry`, `grape`, `ocean`, `lime`, `peach`, `ink`, `danger` (error text, ~10:1 on cream).
 
-Animation classes: `anim-coin-big` (the large +10 XP coin on clearing a habit), `anim-confetti` (18 pixel pieces, a fixed spread so renders stay pure), `anim-coin-pop` (+25 on a perfect day), `anim-level-up`, `anim-star-burst`. All use stepped timing for an 8-bit feel. With reduced motion, confetti is hidden and the coin just fades.
+Animation classes: `anim-coin-big` (the large +10 XP pill on clearing a habit; its coin is `pixel-coin.tsx`, an original 10×14 SVG sprite that spins with `anim-coin-spin`), `anim-confetti` (18 pixel pieces, a fixed spread so renders stay pure), `anim-coin-pop` (+25 on a perfect day), `anim-level-up`, `anim-star-burst`. All use stepped timing for an 8-bit feel. With reduced motion, confetti is hidden and the coin just fades.
 
 Component classes in `globals.css`:
 - `pixel-card`: a cream block with a 4px ink border and a hard offset shadow
