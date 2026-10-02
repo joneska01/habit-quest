@@ -28,6 +28,13 @@ function QuestCard({ quest }: { quest: QuestSummary }) {
             {formatRange(quest.startDate, quest.endDate)} · {quest.period === "week" ? "Weekly" : "Monthly"}
           </p>
         </div>
+        <Link
+          href={`/quests/${quest.id}/edit`}
+          className="pixel-btn bg-cloud px-2 text-[10px]"
+          aria-label={`Edit habits in ${quest.name}`}
+        >
+          ✏️
+        </Link>
         <DeleteQuestButton questId={quest.id} name={quest.name} />
       </div>
       <ul className="flex flex-wrap gap-2">

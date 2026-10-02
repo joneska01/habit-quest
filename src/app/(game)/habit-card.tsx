@@ -15,6 +15,18 @@ type UndoEntry = { id: number; label: string; inverse: Change };
 
 const SEGMENTS = 10;
 
+// Pixel confetti for a cleared habit: fixed spread (not random) so renders stay pure.
+const CONFETTI_COLORS = ["coin", "berry", "ocean", "grass", "grape", "brick"];
+const CONFETTI = Array.from({ length: 18 }, (_, i) => {
+  const angle = (i / 18) * 2 * Math.PI + (i % 3) * 0.25;
+  const distance = 85 + ((i * 37) % 70);
+  return {
+    color: `var(--color-${CONFETTI_COLORS[i % CONFETTI_COLORS.length]})`,
+    dx: `${Math.round(Math.cos(angle) * distance)}px`,
+    dy: `${Math.round(Math.sin(angle) * distance - 25)}px`,
+  };
+});
+
 export function HabitCard({ habit, date, streak }: { habit: DayHabit; date: string; streak: number }) {
   const [amount, applyOptimistic] = useOptimistic(habit.amount, (current: number, change: Change) =>
     change.mode === "add" ? Math.max(0, current + change.amount) : change.amount,
@@ -188,12 +200,17 @@ export function HabitCard({ habit, date, streak }: { habit: DayHabit; date: stri
       )}
 
       {coinPops > 0 && (
-        <span
-          key={coinPops}
-          className="anim-coin-pop pointer-events-none absolute top-2 right-4 border-2 border-ink bg-coin px-2 py-1 font-pixel text-[10px]"
-          aria-hidden
-        >
-          🪙 +{XP_PER_HABIT} XP
+        <span key={coinPops} className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center" aria-hidden>
+          {CONFETTI.map((c, i) => (
+            <span
+              key={i}
+              className="anim-confetti absolute size-3 border border-ink"
+              style={{ background: c.color, "--dx": c.dx, "--dy": c.dy } as React.CSSProperties}
+            />
+          ))}
+          <span className="anim-coin-big flex items-center gap-2 border-4 border-ink bg-coin px-4 py-2 font-pixel text-base shadow-[4px_4px_0_var(--color-ink)]">
+            <span className="text-3xl">🪙</span>+{XP_PER_HABIT} XP
+          </span>
         </span>
       )}
 

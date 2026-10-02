@@ -16,6 +16,11 @@
   --color-peach: #ffb385;
   --color-ink: #2b2d42;
   --color-danger: #b42318; /* error text: ≥4.5:1 on cream */
+  /* Stats heatmap "Sunset" scale, light → dark with completion */
+  --color-heat-1: #ffd1e3;
+  --color-heat-2: #ff8fc8;
+  --color-heat-3: #b45be5;
+  --color-heat-4: #4b2a99;
 }
 
 @theme inline {
@@ -93,6 +98,19 @@ body {
   0% { transform: scale(0) rotate(0deg); opacity: 1; color: var(--color-coin); }
   100% { transform: scale(3) rotate(90deg); opacity: 0; color: var(--color-berry); }
 }
+@keyframes coin-big {
+  0% { transform: translateY(16px) scale(0.2); opacity: 0; }
+  12% { transform: translateY(0) scale(1.35); opacity: 1; }
+  22% { transform: scale(0.92); }
+  30% { transform: scale(1.06); }
+  38%, 70% { transform: scale(1); opacity: 1; }
+  100% { transform: translateY(-56px) scale(1); opacity: 0; }
+}
+@keyframes confetti {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) rotate(180deg); opacity: 0; }
+}
 @keyframes fade-hold {
   0%, 80% { opacity: 1; }
   100% { opacity: 0; visibility: hidden; }
@@ -101,9 +119,13 @@ body {
 .anim-coin-pop { animation: coin-pop 1.2s steps(10) forwards; }
 .anim-level-up { animation: level-up 2.8s ease-out forwards; }
 .anim-star-burst { animation: star-burst 0.9s steps(8) forwards; }
+.anim-coin-big { animation: coin-big 1.6s steps(16) forwards; }
+.anim-confetti { animation: confetti 0.9s steps(9) forwards; }
 
 @media (prefers-reduced-motion: reduce) {
+  .anim-confetti { display: none; }
   .anim-coin-pop,
+  .anim-coin-big,
   .anim-level-up,
   .anim-star-burst {
     animation: fade-hold 2s steps(1, end) forwards;

@@ -55,6 +55,13 @@ export const createQuestSchema = z.object({
 });
 export type CreateQuestInput = z.infer<typeof createQuestSchema>;
 
+/** Editing a quest's habits reuses the same habit rules as creating one. */
+export const updateQuestHabitsSchema = z.object({
+  questId: id,
+  habits: createQuestSchema.shape.habits,
+});
+export type UpdateQuestHabitsInput = z.infer<typeof updateQuestHabitsSchema>;
+
 /** A browser PushSubscription.toJSON(), saved so the server can push to it. */
 export const pushSubscriptionSchema = z.object({
   endpoint: z.url({ protocol: /^https$/ }).max(1000),

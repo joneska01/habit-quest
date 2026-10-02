@@ -7,14 +7,15 @@ import { formatAmount, unitLabel } from "@/lib/logging";
 import { listUserHabits } from "@/lib/queries/quests";
 import { loadScoringData } from "@/lib/queries/scoring";
 
-// One hue (grass), light → dark, for "how much of the day got done" (sequential scale).
+// "Sunset" scale: light → dark as completion rises (white → pinks → purple → indigo).
+// Lightness steps carry the meaning, so it reads for colorblind viewers too; 100% also gets a ★.
 const BIN_STYLE: Record<number, React.CSSProperties> = {
   [-1]: { background: "transparent", borderStyle: "dashed", opacity: 0.35 },
   0: { background: "var(--color-cloud)" },
-  1: { background: "color-mix(in srgb, var(--color-grass) 25%, var(--color-cloud))" },
-  2: { background: "color-mix(in srgb, var(--color-grass) 50%, var(--color-cloud))" },
-  3: { background: "color-mix(in srgb, var(--color-grass) 75%, var(--color-cloud))" },
-  4: { background: "var(--color-grass)" },
+  1: { background: "var(--color-heat-1)" },
+  2: { background: "var(--color-heat-2)" },
+  3: { background: "var(--color-heat-3)" },
+  4: { background: "var(--color-heat-4)", color: "var(--color-cream)" },
 };
 const LEGEND: [number, string][] = [
   [-1, "No quest"],
@@ -93,7 +94,12 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
         <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs font-bold">
           {LEGEND.map(([bin, label]) => (
             <li key={bin} className="flex items-center gap-1">
-              <span className="inline-block size-3 border-2 border-ink" style={BIN_STYLE[bin]} />
+              <span
+                className="inline-flex size-4 items-center justify-center border-2 border-ink text-[8px] leading-none"
+                style={BIN_STYLE[bin]}
+              >
+                {bin === 4 ? "★" : ""}
+              </span>
               {label}
             </li>
           ))}
@@ -116,11 +122,13 @@ export default async function StatsPage({ searchParams }: { searchParams: Promis
                     return (
                       <span
                         key={date}
-                        className={`aspect-square border border-ink ${date === today ? "outline-2 outline-berry" : ""}`}
+                        className={`flex aspect-square items-center justify-center border border-ink text-[9px] leading-none ${date === today ? "outline-2 outline-coin" : ""}`}
                         style={date > today ? { opacity: 0.15 } : BIN_STYLE[heatBin(fraction)]}
                         title={`${formatDayLabel(date)}: ${date > today ? "upcoming" : label}`}
                         aria-label={`${formatDayLabel(date)}: ${date > today ? "upcoming" : label}`}
-                      />
+                      >
+                        {date <= today && heatBin(fraction) === 4 ? "★" : ""}
+                      </span>
                     );
                   })}
                 </div>
